@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cello Sight-Reading</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+  /* Layout: a settings card, then a full-height player with the score on paper. */
+  :root {
+    --bg: #f3f1ec;
+    --panel: #fff;
+    --text: #23211d;
+    --muted: #69655c;
+    --line: #dcd7cb;
+    --bar: #2a2925;
+    --bar-text: #eeebe4;
+    --bar-button: #44423c;
+    --bar-button-hover: #55524b;
+    --accent: #e8a33d;
+    --accent-text: #1d1300;
+    --error: #b8330b;
+    /* The score is always ink on paper, in either theme. */
+    --paper: #fff;
+    --ink: #000;
+    --highlight: #d4380d;
+    --display: "Literata", Georgia, serif;
+    --body: "Source Sans 3", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1a18; --panel: #262521; --text: #ebe8e1; --muted: #a29e94; --line: #3b3934;
+      --bar: #121110; --bar-text: #eeebe4; --bar-button: #34322d; --bar-button-hover: #44423c;
+      --error: #f08a63; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1a18; --panel: #262521; --text: #ebe8e1; --muted: #a29e94; --line: #3b3934;
+    --bar: #121110; --bar-text: #eeebe4; --bar-button: #34322d; --bar-button-hover: #44423c;
+    --error: #f08a63; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: var(--body); font-size: 16px; color: var(--text); background: var(--bg);
+    -webkit-tap-highlight-color: transparent;
+  }
+  [hidden] { display: none !important; }
+  button { font: inherit; cursor: pointer; }
+
+  /* --- Options screen --- */
+  #options {
+    min-height: 100%; display: flex; align-items: center; justify-content: center; padding-block: 24px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .card {
+    width: 100%; max-width: 560px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 28px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  }
+  h1 { margin: 0 0 4px; font-family: var(--display); font-weight: 600; font-size: 28px; text-wrap: balance; }
+  .subtitle { margin: 0 0 24px; color: var(--muted); }
+  fieldset { border: 0; padding: 0; margin: 0 0 22px; }
+  legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+  .hint { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+  .segmented { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .segmented label { flex: 1; text-align: center; }
+  .segmented input { position: absolute; opacity: 0; pointer-events: none; }
+  .segmented span { display: block; padding: 9px 6px; cursor: pointer; border-left: 1px solid var(--line); }
+  .segmented label:first-child span { border-left: 0; }
+  .segmented input:checked + span { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+  .segmented input:focus-visible + span { outline: 2px solid var(--text); outline-offset: -2px; }
+  select {
+    width: 100%; font: inherit; padding: 9px 10px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--panel); color: inherit;
+  }
+  .positions { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 12px; }
+  .check { display: flex; align-items: center; gap: 8px; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  #generate {
+    width: 100%; padding: 12px; border: 0; border-radius: 8px; font-size: 17px; font-weight: 600;
+    background: var(--accent); color: var(--accent-text);
+  }
+  #generate:disabled { opacity: 0.5; cursor: not-allowed; }
+  #error { color: var(--error); margin: 10px 0 0; min-height: 1.2em; font-size: 14px; }
+
+  /* --- Player screen --- */
+  #player { height: 100%; display: flex; flex-direction: column; background: var(--paper); }
+  #bar {
+    flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: var(--bar); color: var(--bar-text); font-size: 15px;
+  }
+  #bar button {
+    padding: 6px 14px; border: 0; border-radius: 4px; background: var(--bar-button); color: inherit;
+  }
+  #bar button:hover { background: var(--bar-button-hover); }
+  #bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #bar #play { background: var(--accent); color: var(--accent-text); min-width: 84px; font-weight: 600; }
+  #bar label { display: flex; align-items: center; gap: 6px; }
+  #tempo { width: 140px; accent-color: var(--accent); }
+  #tempo-value { min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+  #bar input[type=checkbox] { accent-color: var(--accent); }
+  #info { margin-left: auto; opacity: 0.75; }
+  #page {
+    flex: 1; min-height: 0; overflow-y: auto; padding-block: 8px 24px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  #music { max-width: 1600px; margin: 0 auto; color: var(--ink); }
+  #music .abcjs-note { cursor: pointer; }
+  /* Colour only: an outline stroke would make the note look thicker. */
+  #music .playing, #music .playing * { fill: var(--highlight); color: var(--highlight); }
+  #count {
+    position: fixed; top: calc(64px + env(safe-area-inset-top, 0px)); right: calc(32px + env(safe-area-inset-right, 0px));
+    font-family: var(--display); font-size: 96px; font-weight: 600; line-height: 1;
+    font-variant-numeric: tabular-nums; color: var(--accent); text-shadow: 0 0 8px var(--paper); pointer-events: none;
+  }
+  @media (max-width: 640px) {
+    #info { margin-left: 0; width: 100%; }
+    #tempo { width: 100px; }
+  }
+</style>
+</head>
+<body>
+
+<main id="options">
+  <form class="card" id="form">
+    <h1>Cello Sight-Reading</h1>
+    <p class="subtitle">Forty bars of crotchets in common time, shifting position every four bars.</p>
+
+    <fieldset>
+      <legend>Clef</legend>
+      <div class="segmented">
+        <label><input type="radio" name="clef" value="random"><span>Random</span></label>
+        <label><input type="radio" name="clef" value="bass"><span>Bass</span></label>
+        <label><input type="radio" name="clef" value="tenor"><span>Tenor</span></label>
+      </div>
+      <p class="hint">Tenor clef exercises stay at or above the open D string.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend><label for="key">Key</label></legend>
+      <select id="key" name="key"></select>
+    </fieldset>
+
+    <fieldset>
+      <legend>Accidentals</legend>
+      <div class="segmented">
+        <label><input type="radio" name="accidentals" value="on"><span>On</span></label>
+        <label><input type="radio" name="accidentals" value="off"><span>Off</span></label>
+      </div>
+      <p class="hint">On: about one note in four is outside the key.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Positions</legend>
+      <div class="positions" id="positions"></div>
+      <p class="hint">Choose at least two, so there is somewhere to shift to.</p>
+    </fieldset>
+
+    <button type="submit" id="generate">Generate</button>
+    <p id="error"></p>
+  </form>
+</main>
+
+<div id="player" hidden>
+  <div id="bar">
+    <button id="back">‹ Options</button>
+    <button id="play">Play</button>
+    <button id="stop">Stop</button>
+    <label>Tempo <input id="tempo" type="range" min="30" max="200" step="1">
+      <span id="tempo-value"></span></label>
+    <label><input id="metronome" type="checkbox"> Metronome</label>
+    <button id="new">New exercise</button>
+    <span id="info"></span>
+  </div>
+  <div id="page"><div id="music"></div></div>
+  <div id="count" hidden></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.4.4/abcjs-basic-min.js"></script>
+<script src="generator.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
